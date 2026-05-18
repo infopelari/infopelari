@@ -1,0 +1,78 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Dark Mode Premium Color Palette */
+  --bg-primary: #0a0a0a;
+  --bg-secondary: #171717;
+  --bg-tertiary: #262626;
+  
+  --text-primary: #ffffff;
+  --text-secondary: #a3a3a3;
+  --text-muted: #737373;
+  
+  /* Accent Colors (Neon) */
+  --accent-green: #39FF14;
+  --accent-yellow: #CCFF00;
+  
+  /* Status Colors */
+  --status-warning: #FFD700;
+  --status-danger: #FF3333;
+  --status-info: #3399FF;
+  
+  /* Borders */
+  --border-light: rgba(255, 255, 255, 0.1);
+  --border-hover: rgba(57, 255, 20, 0.5);
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-inter), sans-serif;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-outfit), sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+/* Custom Utilities */
+.text-gradient {
+  background: linear-gradient(90deg, var(--accent-green), var(--accent-yellow));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+}
+
+.neon-border {
+  border: 1px solid var(--border-light);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.neon-border:hover, .neon-border:focus-within {
+  border-color: var(--accent-green);
+  box-shadow: 0 0 10px rgba(57, 255, 20, 0.2);
+}
+
+/* Scrollbar customization */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
