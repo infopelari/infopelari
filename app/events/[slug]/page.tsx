@@ -4,7 +4,8 @@ import Navbar from '@/components/Navbar';
 import { PROVINSI_INDONESIA, KOTA_BY_PROVINSI } from '@/lib/constants';
 import type { EventWithDetails } from '@/types/database';
 
-export default async function EventDetailPage({ params }: { params: { slug: string } }) {
+export default async function EventDetailPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
   const supabase = await createClient();
   
   // Fetch event dengan relasi distances dan pricing
@@ -17,7 +18,7 @@ export default async function EventDetailPage({ params }: { params: { slug: stri
         distance_pricing (*)
       )
     `)
-    .eq('slug', params.slug)
+    .eq('slug', slug)
     .eq('status', 'published')
     .single();
 
