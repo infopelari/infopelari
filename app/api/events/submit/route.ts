@@ -9,6 +9,18 @@ export async function POST(request: NextRequest) {
 
     console.log('Received form data:', JSON.stringify(formData, null, 2));
 
+    // Helper function: Convert empty string to null for date fields
+    const sanitizeDate = (date: any) => {
+      if (date === '' || date === undefined) return null;
+      return date;
+    };
+
+    // Helper function: Convert empty string to null for optional text fields
+    const sanitizeText = (text: any) => {
+      if (text === '' || text === undefined) return null;
+      return text;
+    };
+
     // Validasi required fields
     if (!formData.nama_event || !formData.nama_pengirim || !formData.email_pengirim || !formData.whatsapp_pengirim) {
       return NextResponse.json(
@@ -66,8 +78,8 @@ export async function POST(request: NextRequest) {
     const insertData = {
       nama_event: formData.nama_event,
       slug,
-      poster_url: formData.poster_url, // TODO: Handle file upload
-      deskripsi: formData.deskripsi,
+      poster_url: sanitizeText(formData.poster_url),
+      deskripsi: sanitizeText(formData.deskripsi),
       tipe_event: formData.tipe_event || [],
       status_penyelenggaraan: 'normal',
       is_verified: false,
@@ -79,38 +91,38 @@ export async function POST(request: NextRequest) {
       consent_privasi: formData.consent_privasi,
       
       // Lokasi (bypass jika Virtual Run)
-      provinsi_id: isVirtualOnly ? null : formData.provinsi_id,
-      kota_id: isVirtualOnly ? null : formData.kota_id,
+      provinsi_id: isVirtualOnly ? null : sanitizeText(formData.provinsi_id),
+      kota_id: isVirtualOnly ? null : sanitizeText(formData.kota_id),
       zona_waktu: isVirtualOnly ? 'WIB' : formData.zona_waktu,
-      region_cluster: regionCluster,
-      detail_alamat: isVirtualOnly ? null : formData.detail_alamat,
-      google_maps_link: isVirtualOnly ? null : formData.google_maps_link,
-      course_map_link: formData.course_map_link,
+      region_cluster: sanitizeText(regionCluster),
+      detail_alamat: isVirtualOnly ? null : sanitizeText(formData.detail_alamat),
+      google_maps_link: isVirtualOnly ? null : sanitizeText(formData.google_maps_link),
+      course_map_link: sanitizeText(formData.course_map_link),
       
       // Waktu
       tanggal_mulai: formData.tanggal_mulai,
-      tanggal_selesai: formData.tanggal_selesai,
+      tanggal_selesai: sanitizeDate(formData.tanggal_selesai),
       tanggal_deadline: formData.tanggal_deadline,
       is_tentative: formData.is_tentative || false,
       
       // Pendaftaran
       url_pendaftaran: formData.url_pendaftaran,
-      url_referensi: formData.url_referensi,
+      url_referensi: sanitizeText(formData.url_referensi),
       
       // Hadiah & Fasilitas
-      hadiah_juara: formData.hadiah_juara,
-      fasilitas_unik: formData.fasilitas_unik,
-      promo_komunitas: formData.promo_komunitas,
+      hadiah_juara: sanitizeText(formData.hadiah_juara),
+      fasilitas_unik: sanitizeText(formData.fasilitas_unik),
+      promo_komunitas: sanitizeText(formData.promo_komunitas),
       
       // RPC
-      rpc_lokasi: formData.rpc_lokasi,
-      rpc_tanggal_mulai: formData.rpc_tanggal_mulai,
-      rpc_tanggal_selesai: formData.rpc_tanggal_selesai,
-      rpc_detail: formData.rpc_detail,
+      rpc_lokasi: sanitizeText(formData.rpc_lokasi),
+      rpc_tanggal_mulai: sanitizeDate(formData.rpc_tanggal_mulai),
+      rpc_tanggal_selesai: sanitizeDate(formData.rpc_tanggal_selesai),
+      rpc_detail: sanitizeText(formData.rpc_detail),
       
       // Kategori
       kategori_jarak: kategoriJarak,
-      jarak_kustom: formData.jarak_kustom,
+      jarak_kustom: sanitizeText(formData.jarak_kustom),
       label_sertifikasi: formData.label_sertifikasi || [],
       
       // Status & Token
