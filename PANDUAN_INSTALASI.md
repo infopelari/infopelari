@@ -117,6 +117,29 @@ Setelah Node.js dan Git terinstall:
    git init
    git add .
    git commit -m "Upload pertama infopelari"
+   ```
+
+   > [!IMPORTANT]
+   > **MUNCUL ERROR "Author identity unknown" SAAT COMMIT?**
+   > Jika terminal memunculkan pesan error di atas, itu karena Git baru pertama kali diinstall di komputer Anda dan ingin mengetahui identitas pembuat kode.
+   > 
+   > **Cara Mengatasinya:**
+   > 1. Jalankan perintah di bawah ini secara bergantian (ganti dengan email dan nama Anda sendiri):
+   >    ```powershell
+   >    git config --global user.email "email_anda@gmail.com"
+   >    ```
+   >    (lalu tekan **Enter**)
+   >    ```powershell
+   >    git config --global user.name "Nama Lengkap Anda"
+   >    ```
+   >    (lalu tekan **Enter**)
+   > 2. Jika sudah, jalankan kembali perintah commit tadi:
+   >    ```powershell
+   >    git commit -m "Upload pertama infopelari"
+   >    ```
+
+3. Lanjutkan perintah berikut untuk menghubungkan dan mengirimkan kode ke GitHub Anda:
+   ```powershell
    git branch -M main
    git remote add origin https://github.com/USERNAME_GITHUB_ANDA/infopelari.git
    git push -u origin main
@@ -124,11 +147,16 @@ Setelah Node.js dan Git terinstall:
 3. Login ke **https://vercel.com** menggunakan akun GitHub Anda.
 4. Klik **Add New... → Project**.
 5. Temukan repository `infopelari` Anda, lalu klik **Import**.
-6. Buka menu lungsur (dropdown) **Environment Variables**.
-7. Tambahkan `NEXT_PUBLIC_SUPABASE_URL` dan `NEXT_PUBLIC_SUPABASE_ANON_KEY` persis seperti di file `.env.local`.
-8. Klik **Deploy**.
+6. Klik pada bagian **Environment Variables** (menu lungsur/dropdown) untuk membukanya.
+7. Gunakan cara super mudah ini untuk memasukkan semua kunci Anda sekaligus:
+   - Klik tombol **`Import .env`** (atau klik tulisan biru *"or paste the .env contents"* di bagian kiri bawah seperti pada gambar Anda).
+   - Akan muncul kotak teks kosong besar.
+   - Buka file **`.env.local`** Anda di VS Code, salin semua isinya (**`Ctrl + A`** lalu **`Ctrl + C`**).
+   - Kembali ke browser Vercel, tempelkan (**`Ctrl + V`**) semua isi file tersebut ke dalam kotak teks kosong besar tadi.
+   - Klik tombol **`Add`** atau **`Import`**. Vercel akan otomatis mendeteksi dan mengisi semua kunci (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, dll) untuk Anda secara otomatis dan rapi!
+8. Klik tombol **Deploy** di bagian bawah.
 
-Tunggu sekitar 2-3 menit. Setelah selesai, Vercel akan memberikan link gratis (misalnya `infopelari.vercel.app`) yang sudah bisa diakses oleh siapa saja di internet!
+Tunggu sekitar 2-3 menit untuk proses kompilasi. Setelah selesai, Vercel akan memberikan ucapan selamat serta link gratis (misalnya `infopelari.vercel.app`) yang sudah online dan bisa diakses oleh siapa saja di internet!
 
 ---
 
