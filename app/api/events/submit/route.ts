@@ -125,7 +125,12 @@ export async function POST(request: NextRequest) {
     if (eventError) {
       console.error('Error inserting event:', eventError);
       return NextResponse.json(
-        { error: 'Gagal menyimpan event' },
+        { 
+          error: 'Gagal menyimpan event', 
+          details: eventError.message,
+          code: eventError.code,
+          hint: eventError.hint 
+        },
         { status: 500 }
       );
     }

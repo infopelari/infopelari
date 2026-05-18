@@ -118,6 +118,11 @@ CREATE POLICY "Public can view published events"
   ON public.events FOR SELECT
   USING (status = 'published');
 
+-- Publik bisa submit event baru (akan masuk sebagai 'pending')
+CREATE POLICY "Public can insert pending events"
+  ON public.events FOR INSERT
+  WITH CHECK (status = 'pending');
+
 -- Publik bisa melihat detail jarak dan harga dari event yang di-publish
 CREATE POLICY "Public can view related distances"
   ON public.event_distances FOR SELECT
@@ -129,6 +134,17 @@ CREATE POLICY "Public can view related distances"
     )
   );
 
+-- Publik bisa insert distances untuk event pending mereka
+CREATE POLICY "Public can insert distances for pending events"
+  ON public.event_distances FOR INSERT
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.events
+      WHERE events.id = event_distances.event_id
+      AND events.status = 'pending'
+    )
+  );
+
 CREATE POLICY "Public can view related pricing"
   ON public.distance_pricing FOR SELECT
   USING (
@@ -137,6 +153,18 @@ CREATE POLICY "Public can view related pricing"
       JOIN public.events ON events.id = event_distances.event_id
       WHERE event_distances.id = distance_pricing.distance_id
       AND events.status = 'published'
+    )
+  );
+
+-- Publik bisa insert pricing untuk distances dari event pending
+CREATE POLICY "Public can insert pricing for pending events"
+  ON public.distance_pricing FOR INSERT
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.event_distances
+      JOIN public.events ON events.id = event_distances.event_id
+      WHERE event_distances.id = distance_pricing.distance_id
+      AND events.status = 'pending'
     )
   );
 
