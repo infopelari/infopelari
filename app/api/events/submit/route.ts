@@ -7,6 +7,8 @@ export async function POST(request: NextRequest) {
     const supabase = await createClient();
     const formData = await request.json();
 
+    console.log('Received form data:', JSON.stringify(formData, null, 2));
+
     // Validasi required fields
     if (!formData.nama_event || !formData.nama_pengirim || !formData.email_pengirim || !formData.whatsapp_pengirim) {
       return NextResponse.json(
@@ -60,65 +62,70 @@ export async function POST(request: NextRequest) {
       regionCluster = 'Virtual/Online';
     }
 
+    // Prepare insert data
+    const insertData = {
+      nama_event: formData.nama_event,
+      slug,
+      poster_url: formData.poster_url, // TODO: Handle file upload
+      deskripsi: formData.deskripsi,
+      tipe_event: formData.tipe_event || [],
+      status_penyelenggaraan: 'normal',
+      is_verified: false,
+      
+      // Kontak
+      nama_pengirim: formData.nama_pengirim,
+      email_pengirim: formData.email_pengirim,
+      whatsapp_pengirim: formData.whatsapp_pengirim,
+      consent_privasi: formData.consent_privasi,
+      
+      // Lokasi (bypass jika Virtual Run)
+      provinsi_id: isVirtualOnly ? null : formData.provinsi_id,
+      kota_id: isVirtualOnly ? null : formData.kota_id,
+      zona_waktu: isVirtualOnly ? 'WIB' : formData.zona_waktu,
+      region_cluster: regionCluster,
+      detail_alamat: isVirtualOnly ? null : formData.detail_alamat,
+      google_maps_link: isVirtualOnly ? null : formData.google_maps_link,
+      course_map_link: formData.course_map_link,
+      
+      // Waktu
+      tanggal_mulai: formData.tanggal_mulai,
+      tanggal_selesai: formData.tanggal_selesai,
+      tanggal_deadline: formData.tanggal_deadline,
+      is_tentative: formData.is_tentative || false,
+      
+      // Pendaftaran
+      url_pendaftaran: formData.url_pendaftaran,
+      url_referensi: formData.url_referensi,
+      
+      // Hadiah & Fasilitas
+      hadiah_juara: formData.hadiah_juara,
+      fasilitas_unik: formData.fasilitas_unik,
+      promo_komunitas: formData.promo_komunitas,
+      
+      // RPC
+      rpc_lokasi: formData.rpc_lokasi,
+      rpc_tanggal_mulai: formData.rpc_tanggal_mulai,
+      rpc_tanggal_selesai: formData.rpc_tanggal_selesai,
+      rpc_detail: formData.rpc_detail,
+      
+      // Kategori
+      kategori_jarak: kategoriJarak,
+      jarak_kustom: formData.jarak_kustom,
+      label_sertifikasi: formData.label_sertifikasi || [],
+      
+      // Status & Token
+      status: 'pending',
+      edit_token: editToken,
+      edit_token_expires_at: tokenExpiry.toISOString(),
+      jumlah_laporan_link_mati: 0,
+    };
+
+    console.log('Attempting to insert event:', JSON.stringify(insertData, null, 2));
+
     // Insert event
     const { data: event, error: eventError } = await supabase
       .from('events')
-      .insert({
-        nama_event: formData.nama_event,
-        slug,
-        poster_url: formData.poster_url, // TODO: Handle file upload
-        deskripsi: formData.deskripsi,
-        tipe_event: formData.tipe_event || [],
-        status_penyelenggaraan: 'normal',
-        is_verified: false,
-        
-        // Kontak
-        nama_pengirim: formData.nama_pengirim,
-        email_pengirim: formData.email_pengirim,
-        whatsapp_pengirim: formData.whatsapp_pengirim,
-        consent_privasi: formData.consent_privasi,
-        
-        // Lokasi (bypass jika Virtual Run)
-        provinsi_id: isVirtualOnly ? null : formData.provinsi_id,
-        kota_id: isVirtualOnly ? null : formData.kota_id,
-        zona_waktu: isVirtualOnly ? 'WIB' : formData.zona_waktu,
-        region_cluster: regionCluster,
-        detail_alamat: isVirtualOnly ? null : formData.detail_alamat,
-        google_maps_link: isVirtualOnly ? null : formData.google_maps_link,
-        course_map_link: formData.course_map_link,
-        
-        // Waktu
-        tanggal_mulai: formData.tanggal_mulai,
-        tanggal_selesai: formData.tanggal_selesai,
-        tanggal_deadline: formData.tanggal_deadline,
-        is_tentative: formData.is_tentative || false,
-        
-        // Pendaftaran
-        url_pendaftaran: formData.url_pendaftaran,
-        url_referensi: formData.url_referensi,
-        
-        // Hadiah & Fasilitas
-        hadiah_juara: formData.hadiah_juara,
-        fasilitas_unik: formData.fasilitas_unik,
-        promo_komunitas: formData.promo_komunitas,
-        
-        // RPC
-        rpc_lokasi: formData.rpc_lokasi,
-        rpc_tanggal_mulai: formData.rpc_tanggal_mulai,
-        rpc_tanggal_selesai: formData.rpc_tanggal_selesai,
-        rpc_detail: formData.rpc_detail,
-        
-        // Kategori
-        kategori_jarak: kategoriJarak,
-        jarak_kustom: formData.jarak_kustom,
-        label_sertifikasi: formData.label_sertifikasi || [],
-        
-        // Status & Token
-        status: 'pending',
-        edit_token: editToken,
-        edit_token_expires_at: tokenExpiry.toISOString(),
-        jumlah_laporan_link_mati: 0,
-      })
+      .insert(insertData)
       .select()
       .single();
 
@@ -185,10 +192,14 @@ export async function POST(request: NextRequest) {
       edit_token: editToken, // Untuk development, hapus di production
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in submit event:', error);
     return NextResponse.json(
-      { error: 'Terjadi kesalahan server' },
+      { 
+        error: 'Terjadi kesalahan server',
+        details: error?.message || 'Unknown error',
+        stack: process.env.NODE_ENV === 'development' ? error?.stack : undefined
+      },
       { status: 500 }
     );
   }
