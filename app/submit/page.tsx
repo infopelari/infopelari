@@ -15,6 +15,7 @@ import {
 export default function SubmitEventPage() {
   const [loading, setLoading] = useState(false);
   const [posterFile, setPosterFile] = useState<File | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [formData, setFormData] = useState({
     // Identitas Event
     nama_event: '',
@@ -52,8 +53,103 @@ export default function SubmitEventPage() {
 
   const isVirtualOnly = formData.tipe_event.length === 1 && formData.tipe_event.includes('Virtual Run');
 
+  // Custom validation function
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    // Required fields
+    if (!formData.nama_event.trim()) {
+      newErrors.nama_event = 'Nama event wajib diisi';
+    }
+    if (!posterFile) {
+      newErrors.poster = 'Poster event wajib diupload';
+    }
+    if (!formData.nama_pengirim.trim()) {
+      newErrors.nama_pengirim = 'Nama perwakilan panitia wajib diisi';
+    }
+    if (!formData.email_pengirim.trim()) {
+      newErrors.email_pengirim = 'Email wajib diisi';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email_pengirim)) {
+      newErrors.email_pengirim = 'Format email tidak valid';
+    }
+    if (!formData.whatsapp_pengirim.trim()) {
+      newErrors.whatsapp_pengirim = 'No. WhatsApp wajib diisi';
+    } else if (!/^[0-9+\-\s()]+$/.test(formData.whatsapp_pengirim)) {
+      newErrors.whatsapp_pengirim = 'Format nomor WhatsApp tidak valid';
+    }
+    if (!formData.tanggal_mulai) {
+      newErrors.tanggal_mulai = 'Tanggal mulai wajib diisi';
+    }
+    if (!formData.tanggal_deadline) {
+      newErrors.tanggal_deadline = 'Deadline pendaftaran wajib diisi';
+    }
+    if (!formData.url_pendaftaran.trim()) {
+      newErrors.url_pendaftaran = 'URL pendaftaran wajib diisi';
+    } else if (!/^https?:\/\/.+/.test(formData.url_pendaftaran)) {
+      newErrors.url_pendaftaran = 'URL harus dimulai dengan http:// atau https://';
+    }
+    if (!formData.consent_privasi) {
+      newErrors.consent_privasi = 'Anda harus menyetujui syarat & ketentuan';
+    }
+
+    // Conditional required fields (non-virtual events)
+    if (!isVirtualOnly) {
+      if (!formData.provinsi_id) {
+        newErrors.provinsi_id = 'Provinsi wajib dipilih untuk event non-virtual';
+      }
+      if (!formData.kota_id) {
+        newErrors.kota_id = 'Kota wajib dipilih untuk event non-virtual';
+      }
+    }
+
+    // Date validation
+    if (formData.tanggal_mulai && formData.tanggal_deadline) {
+      const startDate = new Date(formData.tanggal_mulai);
+      const deadlineDate = new Date(formData.tanggal_deadline);
+      if (deadlineDate > startDate) {
+        newErrors.tanggal_deadline = 'Deadline harus sebelum tanggal mulai event';
+      }
+    }
+    if (formData.tanggal_mulai && formData.tanggal_selesai) {
+      const startDate = new Date(formData.tanggal_mulai);
+      const endDate = new Date(formData.tanggal_selesai);
+      if (endDate < startDate) {
+        newErrors.tanggal_selesai = 'Tanggal selesai tidak boleh sebelum tanggal mulai';
+      }
+    }
+
+    setErrors(newErrors);
+
+    // Scroll to first error
+    if (Object.keys(newErrors).length > 0) {
+      const firstErrorKey = Object.keys(newErrors)[0];
+      const errorElement = document.querySelector(`[name="${firstErrorKey}"]`) || 
+                          document.querySelector(`[data-field="${firstErrorKey}"]`);
+      if (errorElement) {
+        errorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Show alert with all errors
+        const errorMessages = Object.entries(newErrors)
+          .map(([field, message]) => `• ${message}`)
+          .join('\n');
+        alert('❌ Mohon lengkapi form dengan benar:\n\n' + errorMessages);
+      }
+      return false;
+    }
+
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Clear previous errors
+    setErrors({});
+    
+    // Validate form
+    if (!validateForm()) {
+      return;
+    }
+    
     setLoading(true);
     
     try {
@@ -133,12 +229,19 @@ export default function SubmitEventPage() {
                 </label>
                 <input 
                   type="text" 
+                  name="nama_event"
                   required 
                   value={formData.nama_event}
-                  onChange={(e) => setFormData({...formData, nama_event: e.target.value})}
+                  onChange={(e) => {
+                    setFormData({...formData, nama_event: e.target.value});
+                    if (errors.nama_event) setErrors({...errors, nama_event: ''});
+                  }}
                   placeholder="Contoh: Jakarta Marathon 2026" 
-                  className="w-full bg-bgTertiary border border-borderLight rounded p-3 text-white focus:outline-none focus:border-accentGreen" 
+                  className={`w-full bg-bgTertiary border rounded p-3 text-white focus:outline-none ${errors.nama_event ? 'border-statusDanger focus:border-statusDanger' : 'border-borderLight focus:border-accentGreen'}`}
                 />
+                {errors.nama_event && (
+                  <p className="text-statusDanger text-xs mt-1">⚠️ {errors.nama_event}</p>
+                )}
               </div>
 
               <div>
@@ -182,16 +285,18 @@ export default function SubmitEventPage() {
                 <input
                   type="file"
                   accept="image/*"
+                  name="poster"
                   required
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) {
                       if (file.size > 2 * 1024 * 1024) {
-                        alert('Ukuran file terlalu besar! Maksimal 2MB.');
+                        setErrors({...errors, poster: 'Ukuran file terlalu besar! Maksimal 2MB.'});
                         e.target.value = '';
                         return;
                       }
                       setPosterFile(file);
+                      if (errors.poster) setErrors({...errors, poster: ''});
                     }
                   }}
                   className="hidden"
@@ -199,7 +304,8 @@ export default function SubmitEventPage() {
                 />
                 <label 
                   htmlFor="poster-upload"
-                  className="border-2 border-dashed border-borderLight rounded-lg p-8 flex flex-col items-center justify-center hover:border-accentGreen cursor-pointer transition-colors bg-bgTertiary block"
+                  data-field="poster"
+                  className={`border-2 border-dashed rounded-lg p-8 flex flex-col items-center justify-center hover:border-accentGreen cursor-pointer transition-colors bg-bgTertiary block ${errors.poster ? 'border-statusDanger' : 'border-borderLight'}`}
                 >
                   <svg className="w-8 h-8 text-textMuted mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -212,6 +318,9 @@ export default function SubmitEventPage() {
                     )}
                   </p>
                 </label>
+                {errors.poster && (
+                  <p className="text-statusDanger text-xs mt-1">⚠️ {errors.poster}</p>
+                )}
               </div>
             </div>
 
@@ -309,22 +418,36 @@ export default function SubmitEventPage() {
                   </label>
                   <input 
                     type="date"
+                    name="tanggal_mulai"
                     required
                     value={formData.tanggal_mulai}
-                    onChange={(e) => setFormData({...formData, tanggal_mulai: e.target.value})}
-                    className="w-full bg-bgTertiary border border-borderLight rounded p-3 text-white focus:outline-none focus:border-accentGreen"
+                    onChange={(e) => {
+                      setFormData({...formData, tanggal_mulai: e.target.value});
+                      if (errors.tanggal_mulai) setErrors({...errors, tanggal_mulai: ''});
+                    }}
+                    className={`w-full bg-bgTertiary border rounded p-3 text-white focus:outline-none ${errors.tanggal_mulai ? 'border-statusDanger' : 'border-borderLight focus:border-accentGreen'}`}
                   />
+                  {errors.tanggal_mulai && (
+                    <p className="text-statusDanger text-xs mt-1">⚠️ {errors.tanggal_mulai}</p>
+                  )}
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-textSecondary mb-2">Tanggal Selesai</label>
                   <input 
                     type="date"
+                    name="tanggal_selesai"
                     value={formData.tanggal_selesai}
-                    onChange={(e) => setFormData({...formData, tanggal_selesai: e.target.value})}
-                    className="w-full bg-bgTertiary border border-borderLight rounded p-3 text-white focus:outline-none focus:border-accentGreen"
+                    onChange={(e) => {
+                      setFormData({...formData, tanggal_selesai: e.target.value});
+                      if (errors.tanggal_selesai) setErrors({...errors, tanggal_selesai: ''});
+                    }}
+                    className={`w-full bg-bgTertiary border rounded p-3 text-white focus:outline-none ${errors.tanggal_selesai ? 'border-statusDanger' : 'border-borderLight focus:border-accentGreen'}`}
                   />
-                  <p className="text-xs text-textMuted mt-1">Untuk event multi-hari</p>
+                  <p className="text-xs text-textMuted mt-1">Untuk event multi-hari (opsional)</p>
+                  {errors.tanggal_selesai && (
+                    <p className="text-statusDanger text-xs mt-1">⚠️ {errors.tanggal_selesai}</p>
+                  )}
                 </div>
 
                 <div>
@@ -333,11 +456,18 @@ export default function SubmitEventPage() {
                   </label>
                   <input 
                     type="date"
+                    name="tanggal_deadline"
                     required
                     value={formData.tanggal_deadline}
-                    onChange={(e) => setFormData({...formData, tanggal_deadline: e.target.value})}
-                    className="w-full bg-bgTertiary border border-borderLight rounded p-3 text-white focus:outline-none focus:border-accentGreen"
+                    onChange={(e) => {
+                      setFormData({...formData, tanggal_deadline: e.target.value});
+                      if (errors.tanggal_deadline) setErrors({...errors, tanggal_deadline: ''});
+                    }}
+                    className={`w-full bg-bgTertiary border rounded p-3 text-white focus:outline-none ${errors.tanggal_deadline ? 'border-statusDanger' : 'border-borderLight focus:border-accentGreen'}`}
                   />
+                  {errors.tanggal_deadline && (
+                    <p className="text-statusDanger text-xs mt-1">⚠️ {errors.tanggal_deadline}</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -410,12 +540,19 @@ export default function SubmitEventPage() {
                 </label>
                 <input 
                   type="url"
+                  name="url_pendaftaran"
                   required
                   value={formData.url_pendaftaran}
-                  onChange={(e) => setFormData({...formData, url_pendaftaran: e.target.value})}
+                  onChange={(e) => {
+                    setFormData({...formData, url_pendaftaran: e.target.value});
+                    if (errors.url_pendaftaran) setErrors({...errors, url_pendaftaran: ''});
+                  }}
                   placeholder="https://..."
-                  className="w-full bg-bgTertiary border border-borderLight rounded p-3 text-white focus:outline-none focus:border-accentGreen"
+                  className={`w-full bg-bgTertiary border rounded p-3 text-white focus:outline-none ${errors.url_pendaftaran ? 'border-statusDanger' : 'border-borderLight focus:border-accentGreen'}`}
                 />
+                {errors.url_pendaftaran && (
+                  <p className="text-statusDanger text-xs mt-1">⚠️ {errors.url_pendaftaran}</p>
+                )}
               </div>
 
               <div>
@@ -446,12 +583,19 @@ export default function SubmitEventPage() {
                 </label>
                 <input 
                   type="text" 
+                  name="nama_pengirim"
                   required
                   value={formData.nama_pengirim}
-                  onChange={(e) => setFormData({...formData, nama_pengirim: e.target.value})}
+                  onChange={(e) => {
+                    setFormData({...formData, nama_pengirim: e.target.value});
+                    if (errors.nama_pengirim) setErrors({...errors, nama_pengirim: ''});
+                  }}
                   placeholder="Nama lengkap Anda"
-                  className="w-full bg-bgTertiary border border-borderLight rounded p-3 text-white focus:outline-none focus:border-accentGreen" 
+                  className={`w-full bg-bgTertiary border rounded p-3 text-white focus:outline-none ${errors.nama_pengirim ? 'border-statusDanger' : 'border-borderLight focus:border-accentGreen'}`}
                 />
+                {errors.nama_pengirim && (
+                  <p className="text-statusDanger text-xs mt-1">⚠️ {errors.nama_pengirim}</p>
+                )}
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -461,13 +605,20 @@ export default function SubmitEventPage() {
                   </label>
                   <input 
                     type="email" 
+                    name="email_pengirim"
                     required
                     value={formData.email_pengirim}
-                    onChange={(e) => setFormData({...formData, email_pengirim: e.target.value})}
+                    onChange={(e) => {
+                      setFormData({...formData, email_pengirim: e.target.value});
+                      if (errors.email_pengirim) setErrors({...errors, email_pengirim: ''});
+                    }}
                     placeholder="email@example.com"
-                    className="w-full bg-bgTertiary border border-borderLight rounded p-3 text-white focus:outline-none focus:border-accentGreen" 
+                    className={`w-full bg-bgTertiary border rounded p-3 text-white focus:outline-none ${errors.email_pengirim ? 'border-statusDanger' : 'border-borderLight focus:border-accentGreen'}`}
                   />
                   <p className="text-xs text-textMuted mt-1">Link edit akan dikirim ke email ini</p>
+                  {errors.email_pengirim && (
+                    <p className="text-statusDanger text-xs mt-1">⚠️ {errors.email_pengirim}</p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-textSecondary mb-2">
@@ -475,28 +626,42 @@ export default function SubmitEventPage() {
                   </label>
                   <input 
                     type="tel" 
+                    name="whatsapp_pengirim"
                     required
                     value={formData.whatsapp_pengirim}
-                    onChange={(e) => setFormData({...formData, whatsapp_pengirim: e.target.value})}
+                    onChange={(e) => {
+                      setFormData({...formData, whatsapp_pengirim: e.target.value});
+                      if (errors.whatsapp_pengirim) setErrors({...errors, whatsapp_pengirim: ''});
+                    }}
                     placeholder="08123456789"
-                    className="w-full bg-bgTertiary border border-borderLight rounded p-3 text-white focus:outline-none focus:border-accentGreen" 
+                    className={`w-full bg-bgTertiary border rounded p-3 text-white focus:outline-none ${errors.whatsapp_pengirim ? 'border-statusDanger' : 'border-borderLight focus:border-accentGreen'}`}
                   />
+                  {errors.whatsapp_pengirim && (
+                    <p className="text-statusDanger text-xs mt-1">⚠️ {errors.whatsapp_pengirim}</p>
+                  )}
                 </div>
               </div>
 
               <div className="pt-4 border-t border-borderLight">
-                <label className="flex items-start gap-3 cursor-pointer">
+                <label className="flex items-start gap-3 cursor-pointer" data-field="consent_privasi">
                   <input 
                     type="checkbox" 
+                    name="consent_privasi"
                     required
                     checked={formData.consent_privasi}
-                    onChange={(e) => setFormData({...formData, consent_privasi: e.target.checked})}
+                    onChange={(e) => {
+                      setFormData({...formData, consent_privasi: e.target.checked});
+                      if (errors.consent_privasi) setErrors({...errors, consent_privasi: ''});
+                    }}
                     className="mt-1 accent-accentGreen w-5 h-5 flex-shrink-0" 
                   />
                   <span className="text-sm text-textSecondary leading-relaxed">
                     Saya menyatakan bahwa informasi event ini adalah benar dan akurat. Saya menyetujui <span className="text-accentGreen font-medium">Syarat & Ketentuan</span> dan memberikan izin kepada infopelari.id untuk menyimpan data kontak saya sesuai dengan <span className="text-accentGreen font-medium">Kebijakan Privasi</span> (UU PDP Indonesia).
                   </span>
                 </label>
+                {errors.consent_privasi && (
+                  <p className="text-statusDanger text-xs mt-2">⚠️ {errors.consent_privasi}</p>
+                )}
               </div>
             </div>
 
