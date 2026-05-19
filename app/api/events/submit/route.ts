@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/server';
 import { generateSlug, generateEditToken, calculateTokenExpiry, deduplicateKategoriJarak } from '@/lib/utils';
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient();
+    // Use admin client to bypass RLS for public form submission
+    const supabase = await createAdminClient();
     const formData = await request.json();
 
     console.log('Received form data:', JSON.stringify(formData, null, 2));
